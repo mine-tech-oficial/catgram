@@ -1,5 +1,6 @@
 import database
 import gleam/dynamic
+import gleam/erlang/os
 import gleam/int
 import gleam/io
 import gleam/list
@@ -26,19 +27,17 @@ pub type Model {
 }
 
 fn init(_) -> #(Model, effect.Effect(Msg)) {
-  let assert Ok(config) =
-    pgo.url_config(
-      "postgres://catgramdb_owner:YqBtGk52exmK@ep-rough-grass-a48t0u1v.us-east-1.aws.neon.tech:5432/catgramdb?sslmode=require",
-    )
+  let assert Ok(url) = os.get_env("DATABASE_URL")
+  let assert Ok(config) = pgo.url_config(url)
   let config = pgo.Config(..config, ssl: True)
   io.debug(config)
   let db = pgo.connect(config)
   #(
     Model(db, [
-      database.Post(123, "pJH1hrpRtPUN4iRo", "Pedro", 3),
-      database.Post(456, "BbXEl9TskqkOjzyr", "Pedro", 1),
+      // database.Post(123, "pJH1hrpRtPUN4iRo", "Pedro", 3),
+    // database.Post(456, "BbXEl9TskqkOjzyr", "Pedro", 1),
     ]),
-    effect.none(),
+    database.get_posts(db, ApiReturnedPosts),
   )
 }
 
