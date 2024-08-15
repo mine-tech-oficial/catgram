@@ -1,5 +1,4 @@
 import database
-import gleam/dynamic
 import gleam/erlang/os
 import gleam/int
 import gleam/io
@@ -13,6 +12,7 @@ import lustre/element/html
 import lustre/event
 import lustre/ui
 import lustre/ui/layout/stack
+import sql.{type GetPostsRow, GetPostsRow}
 
 // MAIN ------------------------------------------------------------------------
 
@@ -23,30 +23,22 @@ pub fn app() {
 // MODEL -----------------------------------------------------------------------
 
 pub type Model {
-  Model(db: pgo.Connection, posts: List(database.Post))
+  Model(db: pgo.Connection, posts: List(GetPostsRow))
 }
 
 fn init(_) -> #(Model, effect.Effect(Msg)) {
   let assert Ok(url) = os.get_env("DATABASE_URL")
   let assert Ok(config) = pgo.url_config(url)
-  let config = pgo.Config(..config, ssl: True)
-  io.debug(config)
   let db = pgo.connect(config)
-  #(
-    Model(db, [
-      // database.Post(123, "pJH1hrpRtPUN4iRo", "Pedro", 3),
-    // database.Post(456, "BbXEl9TskqkOjzyr", "Pedro", 1),
-    ]),
-    database.get_posts(db, ApiReturnedPosts),
-  )
+  #(Model(db, []), database.get_posts(db, ApiReturnedPosts))
 }
 
 // UPDATE ----------------------------------------------------------------------
 
 pub opaque type Msg {
   UserLikedPost(Int)
-  ApiReturnedPosts(Result(List(database.Post), pgo.QueryError))
-  ApiLikedPost(List(database.Post))
+  ApiReturnedPosts(Result(List(GetPostsRow), pgo.QueryError))
+  ApiLikedPost(List(GetPostsRow))
 }
 
 fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
@@ -60,7 +52,7 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
       Model(model.db, list.append(model.posts, posts)),
       effect.none(),
     )
-    ApiReturnedPosts(Error(err)) -> #(model, effect.none())
+    ApiReturnedPosts(Error(_err)) -> #(model, effect.none())
     ApiLikedPost(posts) -> #(Model(model.db, posts), effect.none())
   }
 }

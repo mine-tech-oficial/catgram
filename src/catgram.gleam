@@ -97,7 +97,7 @@ type Counter =
   Subject(lustre.Action(counter.Msg, lustre.ServerComponent))
 
 fn socket_init(
-  conn: WebsocketConnection,
+  _conn: WebsocketConnection,
 ) -> #(Counter, Option(Selector(lustre.Patch(counter.Msg)))) {
   let self = process.new_subject()
   let app = counter.app()
