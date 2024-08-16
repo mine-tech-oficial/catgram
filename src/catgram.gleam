@@ -59,12 +59,12 @@ pub fn main() {
           |> response.set_body(
             html([], [
               html.head([], [
-                html.link([
-                  attribute.rel("stylesheet"),
-                  attribute.href(
-                    "https://cdn.jsdelivr.net/gh/lustre-labs/ui/priv/styles.css",
-                  ),
-                ]),
+                // html.link([
+                //   attribute.rel("stylesheet"),
+                //   attribute.href(
+                //     "https://cdn.jsdelivr.net/gh/lustre-labs/ui/priv/styles.css",
+                //   ),
+                // ]),
                 html.script(
                   [
                     attribute.type_("module"),
@@ -72,7 +72,7 @@ pub fn main() {
                   ],
                   "",
                 ),
-                styles.elements(),
+                // styles.elements(),
               ]),
               html.body([], [
                 server_component.component([server_component.route("/counter")]),

@@ -43,3 +43,21 @@ order BY
 desc"
   |> pgo.execute(db, [], decode.from(decoder, _))
 }
+
+/// Runs the `like_post` query
+/// defined in `./src/sql/like_post.sql`.
+///
+/// > 🐿️ This function was generated automatically using v1.3.1 of
+/// > the [squirrel package](https://github.com/giacomocavalieri/squirrel).
+///
+pub fn like_post(db, arg_1) {
+  let decoder = decode.map(decode.dynamic, fn(_) { Nil })
+
+  "update
+  post
+set
+  likes = likes + 1
+where
+  id = $1"
+  |> pgo.execute(db, [pgo.int(arg_1)], decode.from(decoder, _))
+}

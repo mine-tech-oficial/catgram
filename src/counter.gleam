@@ -38,7 +38,7 @@ fn init(_) -> #(Model, effect.Effect(Msg)) {
 pub opaque type Msg {
   UserLikedPost(Int)
   ApiReturnedPosts(Result(List(GetPostsRow), pgo.QueryError))
-  ApiLikedPost(List(GetPostsRow))
+  ApiLikedPost(Result(List(GetPostsRow), pgo.QueryError))
 }
 
 fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
@@ -46,14 +46,15 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
   case msg {
     UserLikedPost(post_id) -> #(
       model,
-      database.like_post(post_id, model.posts, ApiLikedPost),
+      database.like_post(post_id, model.db, ApiLikedPost),
     )
     ApiReturnedPosts(Ok(posts)) -> #(
       Model(model.db, list.append(model.posts, posts)),
       effect.none(),
     )
     ApiReturnedPosts(Error(_err)) -> #(model, effect.none())
-    ApiLikedPost(posts) -> #(Model(model.db, posts), effect.none())
+    ApiLikedPost(Ok(posts)) -> #(Model(model.db, posts), effect.none())
+    ApiLikedPost(Error(_err)) -> #(model, effect.none())
   }
 }
 
