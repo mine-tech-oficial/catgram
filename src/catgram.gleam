@@ -59,12 +59,12 @@ pub fn main() {
           |> response.set_body(
             html([], [
               html.head([], [
-                // html.link([
-                //   attribute.rel("stylesheet"),
-                //   attribute.href(
-                //     "https://cdn.jsdelivr.net/gh/lustre-labs/ui/priv/styles.css",
-                //   ),
-                // ]),
+                html.link([
+                  attribute.rel("stylesheet"),
+                  attribute.href(
+                    "https://cdn.jsdelivr.net/gh/lustre-labs/ui/priv/styles.css",
+                  ),
+                ]),
                 html.script(
                   [
                     attribute.type_("module"),
