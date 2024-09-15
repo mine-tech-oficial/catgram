@@ -1,4 +1,4 @@
-import counter
+import catgram/component
 import gleam/bytes_builder
 import gleam/erlang
 import gleam/erlang/process.{type Selector, type Subject}
@@ -94,13 +94,13 @@ pub fn main() {
 //
 
 type Counter =
-  Subject(lustre.Action(counter.Msg, lustre.ServerComponent))
+  Subject(lustre.Action(component.Msg, lustre.ServerComponent))
 
 fn socket_init(
   _conn: WebsocketConnection,
-) -> #(Counter, Option(Selector(lustre.Patch(counter.Msg)))) {
+) -> #(Counter, Option(Selector(lustre.Patch(component.Msg)))) {
   let self = process.new_subject()
-  let app = counter.app()
+  let app = component.app()
   let assert Ok(counter) = lustre.start_actor(app, 0)
 
   process.send(
@@ -131,7 +131,7 @@ fn socket_init(
 fn socket_update(
   counter: Counter,
   conn: WebsocketConnection,
-  msg: WebsocketMessage(lustre.Patch(counter.Msg)),
+  msg: WebsocketMessage(lustre.Patch(component.Msg)),
 ) {
   case msg {
     mist.Text(json) -> {

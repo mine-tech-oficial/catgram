@@ -5,6 +5,6 @@ select
   likes
 from
   post
-order BY
+order by
   likes
 desc

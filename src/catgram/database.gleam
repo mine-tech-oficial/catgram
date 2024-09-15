@@ -1,9 +1,9 @@
+import catgram/sql.{type GetPostsRow, GetPostsRow}
 import gleam/io
 import gleam/list
 import gleam/pgo
 import gleam/result
 import lustre/effect
-import sql.{type GetPostsRow, GetPostsRow}
 
 // pub type Post {
 //   Post(id: Int, image_id: String, author: String, likes: Int)
