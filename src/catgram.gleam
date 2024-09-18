@@ -1,110 +1,82 @@
-import catgram/component
+import catgram/router
+import catgram/routes/feed
+import catgram/web
 import gleam/bytes_builder
-import gleam/erlang
+import gleam/erlang/os
 import gleam/erlang/process.{type Selector, type Subject}
+import gleam/http
 import gleam/http/request.{type Request}
-import gleam/http/response.{type Response}
+import gleam/http/response.{type Response, Response}
+import gleam/io
 import gleam/json
 import gleam/option.{type Option, None, Some}
 import gleam/otp/actor
-import gleam/result
+import gleam/pgo
 import lustre
-import lustre/attribute
-import lustre/element
-import lustre/element/html.{html}
 import lustre/server_component
-import lustre/ui/util/styles
 import mist.{
   type Connection, type ResponseData, type WebsocketConnection,
   type WebsocketMessage,
 }
+import wisp/wisp_mist
 
 pub fn main() {
-  let assert Ok(_) =
+  let assert Ok(url) = os.get_env("DATABASE_URL")
+  let assert Ok(config) = pgo.url_config(url)
+  let db = pgo.connect(config)
+
+  let ctx = web.Context(db: db)
+
+  let handle = router.handle_request(_, ctx)
+
+  let server =
     fn(req: Request(Connection)) -> Response(ResponseData) {
-      case request.path_segments(req) {
+      io.debug(request.path_segments(req))
+      io.debug(req.method)
+      case request.path_segments(req), req.method {
         // Set up the websocket connection to the client. This is how we send
         // DOM updates to the browser and receive events from the client.
-        ["counter"] ->
+        ["feed"], http.Get ->
           mist.websocket(
             request: req,
-            on_init: socket_init,
+            on_init: socket_init(_, ctx),
             on_close: socket_close,
             handler: socket_update,
           )
 
-        // We need to serve the server component runtime. There's also a minified
-        // version of this script for production.
-        ["lustre-server-component.mjs"] -> {
-          let assert Ok(priv) = erlang.priv_directory("lustre")
-          let path = priv <> "/static/lustre-server-component.mjs"
+        ["feed"], _ -> Response(405, [], mist.Bytes(bytes_builder.new()))
 
-          mist.send_file(path, offset: 0, limit: None)
-          |> result.map(fn(script) {
-            response.new(200)
-            |> response.prepend_header("content-type", "application/javascript")
-            |> response.set_body(script)
-          })
-          |> result.lazy_unwrap(fn() {
-            response.new(404)
-            |> response.set_body(mist.Bytes(bytes_builder.new()))
-          })
-        }
-
-        // For all other requests we'll just serve some HTML that renders the
-        // server component.
-        _ ->
-          response.new(200)
-          |> response.prepend_header("content-type", "text/html")
-          |> response.set_body(
-            html([], [
-              html.head([], [
-                html.link([
-                  attribute.rel("stylesheet"),
-                  attribute.href(
-                    "https://cdn.jsdelivr.net/gh/lustre-labs/ui/priv/styles.css",
-                  ),
-                ]),
-                html.script(
-                  [
-                    attribute.type_("module"),
-                    attribute.src("/lustre-server-component.mjs"),
-                  ],
-                  "",
-                ),
-                // styles.elements(),
-              ]),
-              html.body([], [
-                server_component.component([server_component.route("/counter")]),
-              ]),
-            ])
-            |> element.to_document_string_builder
-            |> bytes_builder.from_string_builder
-            |> mist.Bytes,
-          )
+        _, _ -> wisp_mist.handler(handle, "")(req)
       }
     }
     |> mist.new
     |> mist.port(3000)
     |> mist.start_http
 
-  process.sleep_forever()
+  case server {
+    Ok(_) -> process.sleep_forever()
+    Error(err) -> {
+      io.debug(err)
+      Nil
+    }
+  }
 }
 
 //
 
-type Counter =
-  Subject(lustre.Action(component.Msg, lustre.ServerComponent))
+type Feed =
+  Subject(lustre.Action(feed.Msg, lustre.ServerComponent))
 
 fn socket_init(
   _conn: WebsocketConnection,
-) -> #(Counter, Option(Selector(lustre.Patch(component.Msg)))) {
+  ctx: web.Context,
+) -> #(Feed, Option(Selector(lustre.Patch(feed.Msg)))) {
   let self = process.new_subject()
-  let app = component.app()
-  let assert Ok(counter) = lustre.start_actor(app, 0)
+  let app = feed.app()
+  let assert Ok(feed) = lustre.start_actor(app, ctx.db)
 
   process.send(
-    counter,
+    feed,
     server_component.subscribe(
       // server components can have many connected clients, so we need a way to
       // identify this client.
@@ -123,15 +95,15 @@ fn socket_init(
   #(
     // we store the server component's `Subject` as this socket's state so we
     // can shut it down when the socket is closed.
-    counter,
+    feed,
     Some(process.selecting(process.new_selector(), self, fn(a) { a })),
   )
 }
 
 fn socket_update(
-  counter: Counter,
+  counter: Feed,
   conn: WebsocketConnection,
-  msg: WebsocketMessage(lustre.Patch(component.Msg)),
+  msg: WebsocketMessage(lustre.Patch(feed.Msg)),
 ) {
   case msg {
     mist.Text(json) -> {
@@ -161,6 +133,6 @@ fn socket_update(
   }
 }
 
-fn socket_close(counter: Counter) {
+fn socket_close(counter: Feed) {
   process.send(counter, lustre.shutdown())
 }

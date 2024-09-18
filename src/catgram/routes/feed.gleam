@@ -1,7 +1,6 @@
 import catgram/auth
 import catgram/database
 import catgram/sql.{type GetPostsRow, GetPostsRow}
-import gleam/erlang/os
 import gleam/int
 import gleam/io
 import gleam/list
@@ -28,10 +27,7 @@ pub type Model {
   Model(db: pgo.Connection, posts: List(GetPostsRow), user: Option(auth.User))
 }
 
-fn init(_) -> #(Model, effect.Effect(Msg)) {
-  let assert Ok(url) = os.get_env("DATABASE_URL")
-  let assert Ok(config) = pgo.url_config(url)
-  let db = pgo.connect(config)
+fn init(db: pgo.Connection) -> #(Model, effect.Effect(Msg)) {
   #(Model(db, [], None), database.get_posts(db, ApiReturnedPosts))
 }
 

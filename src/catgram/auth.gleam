@@ -2,7 +2,6 @@ import argus
 import birl
 import birl/duration
 import catgram/sql
-import gleam/io
 import gleam/list
 import gleam/pgo
 import gleam/result
@@ -59,7 +58,7 @@ pub fn register_user(
       |> result.flatten()
     Error(err) -> Error(RegistrationHashError(err))
   }
-  |> result.map(fn(user) {
+  |> result.map(fn(_user) {
     login_user(db, username, password)
     |> result.map_error(fn(err) { RegistrationLoginError(err) })
   })

@@ -1,6 +1,5 @@
 import catgram/sql.{type GetPostsRow, GetPostsRow}
 import gleam/io
-import gleam/list
 import gleam/pgo
 import gleam/result
 import lustre/effect
