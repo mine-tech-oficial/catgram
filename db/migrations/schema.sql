@@ -1,5 +1,6 @@
 CREATE TABLE post (
   id int PRIMARY KEY,
+  image_id text UNIQUE NOT NULL,
   author text NOT NULL,
   likes int NOT NULL
 );
