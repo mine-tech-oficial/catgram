@@ -8,8 +8,8 @@ import lustre/element
 import lustre/element/html.{html}
 import wisp.{type Request}
 
-pub type Login {
-  Login(username: String, password: String)
+pub type Register {
+  Register(username: String, email: String, password: String)
 }
 
 pub fn handle_request(req: Request, ctx: web.Context) {
@@ -42,7 +42,9 @@ fn post(req: Request, ctx: web.Context) {
 
   case form {
     Ok(form) -> {
-      case auth.login_user(ctx.db, form.username, form.password) {
+      case
+        auth.register_user(ctx.db, form.username, form.email, form.password)
+      {
         Ok(#(_, session)) -> {
           wisp.redirect("/")
           |> wisp.set_cookie(
@@ -66,14 +68,21 @@ fn post(req: Request, ctx: web.Context) {
 fn handle_form_submission(values: List(#(String, String))) {
   form.decoding({
     use username <- form.parameter
+    use email <- form.parameter
     use password <- form.parameter
-    Login(username:, password:)
+    Register(username:, email:, password:)
   })
   |> form.with_values(values)
   |> form.field(
     "username",
     form.string
       |> form.and(form.must_not_be_empty),
+  )
+  |> form.field(
+    "email",
+    form.string
+      |> form.and(form.must_not_be_empty)
+      |> form.and(form.must_be_an_email),
   )
   |> form.field(
     "password",

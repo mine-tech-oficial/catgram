@@ -1,5 +1,6 @@
 import catgram/routes/index
 import catgram/routes/login
+import catgram/routes/register
 import catgram/web
 import wisp.{type Request}
 
@@ -8,6 +9,8 @@ pub fn handle_request(req: Request, ctx: web.Context) {
   case wisp.path_segments(req) {
     // Serve the index page, creating a connedtion to the server component
     [] -> index.handle_request(req, ctx)
+
+    ["register"] -> register.handle_request(req, ctx)
 
     ["login"] -> login.handle_request(req, ctx)
 
