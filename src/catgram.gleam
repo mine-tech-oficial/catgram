@@ -1,6 +1,8 @@
+import catgram/artifacts/pubsub
 import catgram/router
 import catgram/routes/feed
 import catgram/web
+import chip
 import gleam/bytes_builder
 import gleam/erlang/os
 import gleam/erlang/process.{type Selector, type Subject}
@@ -25,7 +27,9 @@ pub fn main() {
   let assert Ok(config) = pgo.url_config(url)
   let db = pgo.connect(config)
 
-  let ctx = web.Context(db: db)
+  let assert Ok(pubsub) = pubsub.start()
+
+  let ctx = web.Context(db, None)
 
   let handle = router.handle_request(_, ctx)
 
@@ -36,16 +40,15 @@ pub fn main() {
       case request.path_segments(req), req.method {
         // Set up the websocket connection to the client. This is how we send
         // DOM updates to the browser and receive events from the client.
-        ["feed"], http.Get ->
+        ["feed"], _ ->
           mist.websocket(
             request: req,
-            on_init: socket_init(_, ctx),
+            on_init: socket_init(_, ctx, pubsub),
             on_close: socket_close,
             handler: socket_update,
           )
 
-        ["feed"], _ -> Response(405, [], mist.Bytes(bytes_builder.new()))
-
+        // ["feed"], _ -> Response(405, [], mist.Bytes(bytes_builder.new()))
         _, _ -> wisp_mist.handler(handle, "")(req)
       }
     }
@@ -70,10 +73,16 @@ type Feed =
 fn socket_init(
   _conn: WebsocketConnection,
   ctx: web.Context,
+  pubsub: pubsub.PubSub(
+    lustre.Action(feed.Msg, lustre.ServerComponent),
+    pubsub.Channel,
+  ),
 ) -> #(Feed, Option(Selector(lustre.Patch(feed.Msg)))) {
   let self = process.new_subject()
   let app = feed.app()
-  let assert Ok(feed) = lustre.start_actor(app, ctx.db)
+  let assert Ok(feed) = lustre.start_actor(app, #(ctx.db, pubsub))
+
+  pubsub.subscribe(pubsub, pubsub.Updates, feed)
 
   process.send(
     feed,

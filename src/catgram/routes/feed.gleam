@@ -1,3 +1,4 @@
+import catgram/artifacts/pubsub
 import catgram/auth
 import catgram/database
 import catgram/sql.{type GetPostsRow, GetPostsRow}
@@ -24,11 +25,27 @@ pub fn app() {
 // MODEL -----------------------------------------------------------------------
 
 pub type Model {
-  Model(db: pgo.Connection, posts: List(GetPostsRow), user: Option(auth.User))
+  Model(
+    db: pgo.Connection,
+    pubsub: pubsub.PubSub(
+      lustre.Action(Msg, lustre.ServerComponent),
+      pubsub.Channel,
+    ),
+    posts: List(GetPostsRow),
+    user: Option(auth.User),
+  )
 }
 
-fn init(db: pgo.Connection) -> #(Model, effect.Effect(Msg)) {
-  #(Model(db, [], None), database.get_posts(db, ApiReturnedPosts))
+fn init(
+  params: #(
+    pgo.Connection,
+    pubsub.PubSub(lustre.Action(Msg, lustre.ServerComponent), pubsub.Channel),
+  ),
+) -> #(Model, effect.Effect(Msg)) {
+  #(
+    Model(params.0, params.1, [], None),
+    database.get_posts(params.0, ApiReturnedPosts),
+  )
 }
 
 // UPDATE ----------------------------------------------------------------------
@@ -48,7 +65,7 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
   case msg {
     UserLikedPost(post_id) -> #(
       model,
-      database.like_post(post_id, model.db, ApiLikedPost),
+      database.like_post(post_id, model.db, model.pubsub, ApiLikedPost),
     )
     UserRegistered(username, email, password) -> #(
       model,

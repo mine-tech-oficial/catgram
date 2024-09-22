@@ -6,6 +6,7 @@ packages = [
   { name = "argv", version = "1.0.2", build_tools = ["gleam"], requirements = [], otp_app = "argv", source = "hex", outer_checksum = "BA1FF0929525DEBA1CE67256E5ADF77A7CDDFE729E3E3F57A5BDCAA031DED09D" },
   { name = "backoff", version = "1.1.6", build_tools = ["rebar3"], requirements = [], otp_app = "backoff", source = "hex", outer_checksum = "CF0CFFF8995FB20562F822E5CC47D8CCF664C5ECDC26A684CBE85C225F9D7C39" },
   { name = "birl", version = "1.7.1", build_tools = ["gleam"], requirements = ["gleam_stdlib", "ranger"], otp_app = "birl", source = "hex", outer_checksum = "5C66647D62BCB11FE327E7A6024907C4A17954EF22865FE0940B54A852446D01" },
+  { name = "chip", version = "0.9.0", build_tools = ["gleam"], requirements = ["gleam_erlang", "gleam_otp", "gleam_stdlib"], otp_app = "chip", source = "hex", outer_checksum = "EF5E7F5EEEEBB0F24ADDDF8A3BB24E802ECF19299E9AE8C2E8750FEC96E3CA0A" },
   { name = "decode", version = "0.2.1", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "decode", source = "hex", outer_checksum = "4727FC627B803E4F4FF0075B5F93BC022F9293A19B03BF44B5A4C64BF9E8EAE1" },
   { name = "directories", version = "1.1.0", build_tools = ["gleam"], requirements = ["envoy", "gleam_stdlib", "platform", "simplifile"], otp_app = "directories", source = "hex", outer_checksum = "BDA521A4EB9EE3A7894F0DC863797878E91FF5C7826F7084B2E731E208BDB076" },
   { name = "envoy", version = "1.0.1", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "envoy", source = "hex", outer_checksum = "CFAACCCFC47654F7E8B75E614746ED924C65BD08B1DE21101548AC314A8B6A41" },
@@ -54,6 +55,7 @@ packages = [
 [requirements]
 argus = { version = ">= 1.0.1 and < 2.0.0" }
 birl = { version = ">= 1.7.1 and < 2.0.0" }
+chip = { version = ">= 0.9.0 and < 1.0.0" }
 decode = { version = ">= 0.2.0 and < 1.0.0" }
 formal = { version = ">= 2.2.0 and < 3.0.0" }
 gleam_erlang = { version = ">= 0.25.0 and < 1.0.0" }
