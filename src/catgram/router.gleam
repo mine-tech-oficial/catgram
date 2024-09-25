@@ -6,21 +6,27 @@ import catgram/sql
 import catgram/web
 import gleam/erlang
 import gleam/int
+import gleam/list
 import gleam/option
 import gleam/result
 import wisp.{type Request}
 
 pub fn handle_request(req: Request, ctx: web.Context) {
   use req <- web.middleware(req)
-  // TODO: Actually retrieve the session from the database
   let session =
     wisp.get_cookie(req, "id", wisp.Signed)
-    |> result.map(fn(cookie) {
+    |> result.try(int.parse)
+    |> result.try(fn(id) {
+      sql.get_session_by_id(ctx.db, id)
+      |> result.map_error(fn(_) { Nil })
+    })
+    |> result.try(fn(returned) { list.first(returned.rows) })
+    |> result.map(fn(session_row) {
       auth.Session(
-        result.unwrap(int.parse(cookie), 0),
-        #(#(0, 0, 0), #(0, 0, 0)),
-        #(#(0, 0, 0), #(0, 0, 0)),
-        0,
+        session_row.id,
+        session_row.created_at,
+        session_row.expires_at,
+        session_row.user_id,
       )
     })
     |> option.from_result

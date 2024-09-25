@@ -1,6 +1,58 @@
 import decode
 import gleam/pgo
 
+/// A row you get from running the `get_session_by_id` query
+/// defined in `./src/catgram/sql/get_session_by_id.sql`.
+///
+/// > 🐿️ This type definition was generated automatically using v1.7.1 of the
+/// > [squirrel package](https://github.com/giacomocavalieri/squirrel).
+///
+pub type GetSessionByIdRow {
+  GetSessionByIdRow(
+    id: Int,
+    created_at: #(#(Int, Int, Int), #(Int, Int, Int)),
+    expires_at: #(#(Int, Int, Int), #(Int, Int, Int)),
+    user_id: Int,
+  )
+}
+
+/// Runs the `get_session_by_id` query
+/// defined in `./src/catgram/sql/get_session_by_id.sql`.
+///
+/// > 🐿️ This function was generated automatically using v1.7.1 of
+/// > the [squirrel package](https://github.com/giacomocavalieri/squirrel).
+///
+pub fn get_session_by_id(db, arg_1) {
+  let decoder =
+    decode.into({
+      use id <- decode.parameter
+      use created_at <- decode.parameter
+      use expires_at <- decode.parameter
+      use user_id <- decode.parameter
+      GetSessionByIdRow(
+        id: id,
+        created_at: created_at,
+        expires_at: expires_at,
+        user_id: user_id,
+      )
+    })
+    |> decode.field(0, decode.int)
+    |> decode.field(1, timestamp_decoder())
+    |> decode.field(2, timestamp_decoder())
+    |> decode.field(3, decode.int)
+
+  "select
+  id,
+  date_trunc('second', created_at) as created_at,
+  expires_at,
+  user_id
+from
+  \"session\"
+where
+  id = $1"
+  |> pgo.execute(db, [pgo.int(arg_1)], decode.from(decoder, _))
+}
+
 /// A row you get from running the `get_users` query
 /// defined in `./src/catgram/sql/get_users.sql`.
 ///
