@@ -3,4 +3,4 @@ insert into
 values
   ($1, $2)
 returning
-  id, date_trunc("second", created_at) as created_at
+  id, date_trunc('second', created_at) as created_at

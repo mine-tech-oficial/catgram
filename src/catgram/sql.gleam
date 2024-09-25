@@ -4,7 +4,7 @@ import gleam/pgo
 /// A row you get from running the `get_users` query
 /// defined in `./src/catgram/sql/get_users.sql`.
 ///
-/// > 🐿️ This type definition was generated automatically using v1.7.0 of the
+/// > 🐿️ This type definition was generated automatically using v1.7.1 of the
 /// > [squirrel package](https://github.com/giacomocavalieri/squirrel).
 ///
 pub type GetUsersRow {
@@ -14,7 +14,7 @@ pub type GetUsersRow {
 /// Runs the `get_users` query
 /// defined in `./src/catgram/sql/get_users.sql`.
 ///
-/// > 🐿️ This function was generated automatically using v1.7.0 of
+/// > 🐿️ This function was generated automatically using v1.7.1 of
 /// > the [squirrel package](https://github.com/giacomocavalieri/squirrel).
 ///
 pub fn get_users(db) {
@@ -44,7 +44,7 @@ from
 /// A row you get from running the `get_posts` query
 /// defined in `./src/catgram/sql/get_posts.sql`.
 ///
-/// > 🐿️ This type definition was generated automatically using v1.7.0 of the
+/// > 🐿️ This type definition was generated automatically using v1.7.1 of the
 /// > [squirrel package](https://github.com/giacomocavalieri/squirrel).
 ///
 pub type GetPostsRow {
@@ -54,7 +54,7 @@ pub type GetPostsRow {
 /// Runs the `get_posts` query
 /// defined in `./src/catgram/sql/get_posts.sql`.
 ///
-/// > 🐿️ This function was generated automatically using v1.7.0 of
+/// > 🐿️ This function was generated automatically using v1.7.1 of
 /// > the [squirrel package](https://github.com/giacomocavalieri/squirrel).
 ///
 pub fn get_posts(db) {
@@ -87,7 +87,7 @@ desc"
 /// A row you get from running the `get_user_by_username` query
 /// defined in `./src/catgram/sql/get_user_by_username.sql`.
 ///
-/// > 🐿️ This type definition was generated automatically using v1.7.0 of the
+/// > 🐿️ This type definition was generated automatically using v1.7.1 of the
 /// > [squirrel package](https://github.com/giacomocavalieri/squirrel).
 ///
 pub type GetUserByUsernameRow {
@@ -102,7 +102,7 @@ pub type GetUserByUsernameRow {
 /// Runs the `get_user_by_username` query
 /// defined in `./src/catgram/sql/get_user_by_username.sql`.
 ///
-/// > 🐿️ This function was generated automatically using v1.7.0 of
+/// > 🐿️ This function was generated automatically using v1.7.1 of
 /// > the [squirrel package](https://github.com/giacomocavalieri/squirrel).
 ///
 pub fn get_user_by_username(db, arg_1) {
@@ -139,7 +139,7 @@ where
 /// A row you get from running the `insert_session` query
 /// defined in `./src/catgram/sql/insert_session.sql`.
 ///
-/// > 🐿️ This type definition was generated automatically using v1.7.0 of the
+/// > 🐿️ This type definition was generated automatically using v1.7.1 of the
 /// > [squirrel package](https://github.com/giacomocavalieri/squirrel).
 ///
 pub type InsertSessionRow {
@@ -149,7 +149,7 @@ pub type InsertSessionRow {
 /// Runs the `insert_session` query
 /// defined in `./src/catgram/sql/insert_session.sql`.
 ///
-/// > 🐿️ This function was generated automatically using v1.7.0 of
+/// > 🐿️ This function was generated automatically using v1.7.1 of
 /// > the [squirrel package](https://github.com/giacomocavalieri/squirrel).
 ///
 pub fn insert_session(db, arg_1, arg_2) {
@@ -168,16 +168,17 @@ values
   ($1, $2)
 returning
   id, date_trunc('second', created_at) as created_at"
-  |> pgo.execute(db, [pgo.timestamp(arg_1), pgo.int(arg_2)], decode.from(
-    decoder,
-    _,
-  ))
+  |> pgo.execute(
+    db,
+    [pgo.timestamp(arg_1), pgo.int(arg_2)],
+    decode.from(decoder, _),
+  )
 }
 
 /// Runs the `like_post` query
 /// defined in `./src/catgram/sql/like_post.sql`.
 ///
-/// > 🐿️ This function was generated automatically using v1.7.0 of
+/// > 🐿️ This function was generated automatically using v1.7.1 of
 /// > the [squirrel package](https://github.com/giacomocavalieri/squirrel).
 ///
 pub fn like_post(db, arg_1) {
@@ -195,7 +196,7 @@ where
 /// A row you get from running the `insert_user` query
 /// defined in `./src/catgram/sql/insert_user.sql`.
 ///
-/// > 🐿️ This type definition was generated automatically using v1.7.0 of the
+/// > 🐿️ This type definition was generated automatically using v1.7.1 of the
 /// > [squirrel package](https://github.com/giacomocavalieri/squirrel).
 ///
 pub type InsertUserRow {
@@ -205,7 +206,7 @@ pub type InsertUserRow {
 /// Runs the `insert_user` query
 /// defined in `./src/catgram/sql/insert_user.sql`.
 ///
-/// > 🐿️ This function was generated automatically using v1.7.0 of
+/// > 🐿️ This function was generated automatically using v1.7.1 of
 /// > the [squirrel package](https://github.com/giacomocavalieri/squirrel).
 ///
 pub fn insert_user(db, arg_1, arg_2, arg_3) {
@@ -228,6 +229,7 @@ returning
     decode.from(decoder, _),
   )
 }
+
 
 // --- UTILS -------------------------------------------------------------------
 
