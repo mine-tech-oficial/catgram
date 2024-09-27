@@ -1,6 +1,6 @@
 import catgram/web
 import gleam/http
-import lustre/attribute
+import lustre/attribute.{attribute}
 import lustre/element
 import lustre/element/html.{html}
 import lustre/server_component
@@ -24,9 +24,10 @@ pub fn handle_request(req: Request, _ctx: web.Context) {
         ],
         "",
       ),
-      // styles.elements(),
     ]),
     html.body([], [
+      html.a([attribute("href", "/register")], [element.text("Register")]),
+      html.a([attribute("href", "/login")], [element.text("Login")]),
       server_component.component([server_component.route("/feed")]),
     ]),
   ])

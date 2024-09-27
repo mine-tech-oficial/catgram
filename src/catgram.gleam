@@ -1,19 +1,27 @@
+import birl
 import catgram/artifacts/pubsub
+import catgram/auth
 import catgram/router
 import catgram/routes/feed
+import catgram/sql
 import catgram/web
 import chip
+import gleam/bit_array
 import gleam/bytes_builder
+import gleam/crypto
 import gleam/erlang/os
 import gleam/erlang/process.{type Selector, type Subject}
-import gleam/http
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response, Response}
+import gleam/int
 import gleam/io
 import gleam/json
+import gleam/list
 import gleam/option.{type Option, None, Some}
+import gleam/order
 import gleam/otp/actor
 import gleam/pgo
+import gleam/result
 import lustre
 import lustre/server_component
 import mist.{
@@ -23,6 +31,7 @@ import mist.{
 import wisp/wisp_mist
 
 pub fn main() {
+  let assert Ok(secret_key_base) = os.get_env("SECRET_KEY_BASE")
   let assert Ok(url) = os.get_env("DATABASE_URL")
   let assert Ok(config) = pgo.url_config(url)
   let db = pgo.connect(config)
@@ -31,12 +40,51 @@ pub fn main() {
 
   let ctx = web.Context(db, None)
 
-  let handle = router.handle_request(_, ctx)
-
   let server =
     fn(req: Request(Connection)) -> Response(ResponseData) {
-      io.debug(request.path_segments(req))
-      io.debug(req.method)
+      let user =
+        request.get_cookies(req)
+        |> list.key_find("id")
+        |> result.try(crypto.verify_signed_message(_, <<secret_key_base:utf8>>))
+        |> result.try(bit_array.to_string)
+        |> result.try(fn(id) { int.parse(id) })
+        |> result.try(fn(id) {
+          sql.get_session_by_id(db, id)
+          |> result.map_error(fn(_) { Nil })
+        })
+        |> result.try(fn(returned) { list.first(returned.rows) })
+        |> result.try(fn(session_row) {
+          case
+            birl.compare(
+              birl.from_erlang_universal_datetime(session_row.expires_at),
+              birl.utc_now(),
+            )
+          {
+            order.Gt -> Ok(session_row.user_id)
+            _ -> Error(Nil)
+          }
+        })
+        |> result.try(fn(id) {
+          sql.get_user_by_id(db, id)
+          |> result.map_error(fn(_) { Nil })
+        })
+        |> result.try(fn(returned) { list.first(returned.rows) })
+        |> result.map(fn(user_row) {
+          auth.User(
+            user_row.id,
+            user_row.username,
+            user_row.email,
+            user_row.password,
+          )
+        })
+        |> option.from_result
+
+      let ctx = web.Context(..ctx, user:)
+
+      let handle = router.handle_request(_, ctx)
+
+      // io.debug(request.path_segments(req))
+      // io.debug(req.method)
       case request.path_segments(req), req.method {
         // Set up the websocket connection to the client. This is how we send
         // DOM updates to the browser and receive events from the client.
@@ -49,7 +97,7 @@ pub fn main() {
           )
 
         // ["feed"], _ -> Response(405, [], mist.Bytes(bytes_builder.new()))
-        _, _ -> wisp_mist.handler(handle, "")(req)
+        _, _ -> wisp_mist.handler(handle, secret_key_base)(req)
       }
     }
     |> mist.new
@@ -80,7 +128,7 @@ fn socket_init(
 ) -> #(Feed, Option(Selector(lustre.Patch(feed.Msg)))) {
   let self = process.new_subject()
   let app = feed.app()
-  let assert Ok(feed) = lustre.start_actor(app, #(ctx.db, pubsub))
+  let assert Ok(feed) = lustre.start_actor(app, #(ctx.db, ctx.user, pubsub))
 
   pubsub.subscribe(pubsub, pubsub.Updates, feed)
 

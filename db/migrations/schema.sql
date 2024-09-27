@@ -1,5 +1,5 @@
 CREATE TABLE post (
-  id int PRIMARY KEY,
+  id bigint PRIMARY KEY,
   image_id text UNIQUE NOT NULL,
   author text NOT NULL,
   likes int NOT NULL
@@ -17,4 +17,10 @@ CREATE TABLE "session" (
   created_at timestamp NOT NULL,
   expires_at timestamp NOT NULL,
   user_id bigint NOT NULL REFERENCES "user"(id)
+);
+
+CREATE TABLE "like" (
+  user_id bigint NOT NULL REFERENCES "user"(id),
+  post_id bigint NOT NULL REFERENCES post(id),
+  PRIMARY KEY (user_id, post_id)
 );

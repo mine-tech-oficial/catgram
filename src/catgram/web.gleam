@@ -5,7 +5,7 @@ import gleam/pgo
 import wisp.{type Request, type Response}
 
 pub type Context {
-  Context(db: pgo.Connection, session: Option(auth.Session))
+  Context(db: pgo.Connection, user: Option(auth.User))
 }
 
 pub fn middleware(

@@ -15,6 +15,7 @@ import lustre/element/html
 import lustre/event
 import lustre/ui
 import lustre/ui/layout/stack
+import phosphor
 
 // MAIN ------------------------------------------------------------------------
 
@@ -39,12 +40,14 @@ pub type Model {
 fn init(
   params: #(
     pgo.Connection,
+    Option(auth.User),
     pubsub.PubSub(lustre.Action(Msg, lustre.ServerComponent), pubsub.Channel),
   ),
 ) -> #(Model, effect.Effect(Msg)) {
+  let assert Some(user) = params.1
   #(
-    Model(params.0, params.1, [], None),
-    database.get_posts(params.0, ApiReturnedPosts),
+    Model(params.0, params.2, [], params.1),
+    database.get_posts(params.0, user.id, ApiReturnedPosts),
   )
 }
 
@@ -52,49 +55,35 @@ fn init(
 
 pub opaque type Msg {
   UserLikedPost(Int)
-  UserRegistered(String, String, String)
-  UserLoggedIn(String, String)
   ApiReturnedPosts(Result(List(GetPostsRow), pgo.QueryError))
-  ApiLikedPost(Result(List(GetPostsRow), pgo.QueryError))
-  ApiRegisteredUser(Result(#(auth.User, auth.Session), auth.RegistrationError))
-  ApiLoggedInUser(Result(#(auth.User, auth.Session), auth.LoginError))
+  ApiLikedPost(Result(List(GetPostsRow), pgo.TransactionError))
 }
 
 fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
   io.debug(msg)
-  case msg {
-    UserLikedPost(post_id) -> #(
-      model,
-      database.like_post(post_id, model.db, model.pubsub, ApiLikedPost),
-    )
-    UserRegistered(username, email, password) -> #(
-      model,
-      auth.register_user_effect(
-        model.db,
-        username,
-        email,
-        password,
-        ApiRegisteredUser,
-      ),
-    )
-    UserLoggedIn(username, password) -> #(
-      model,
-      auth.login_user_effect(model.db, username, password, ApiLoggedInUser),
-    )
-    ApiReturnedPosts(Ok(posts)) -> #(
-      Model(..model, posts: list.append(model.posts, posts)),
-      effect.none(),
-    )
-    ApiReturnedPosts(Error(_err)) -> #(model, effect.none())
-    ApiLikedPost(Ok(posts)) -> #(Model(..model, posts:), effect.none())
-    ApiLikedPost(Error(_err)) -> #(model, effect.none())
-    ApiRegisteredUser(Ok(_)) -> #(model, effect.none())
-    ApiRegisteredUser(Error(_err)) -> #(model, effect.none())
-    ApiLoggedInUser(Ok(#(user, _))) -> #(
-      Model(..model, user: Some(user)),
-      effect.none(),
-    )
-    ApiLoggedInUser(Error(_err)) -> #(model, effect.none())
+  io.debug(model.user)
+  case model.user {
+    Some(user) ->
+      case msg {
+        UserLikedPost(post_id) -> #(
+          model,
+          database.like_post(
+            user_id: user.id,
+            post_id:,
+            db: model.db,
+            pubsub: model.pubsub,
+            to_msg: ApiLikedPost,
+          ),
+        )
+        ApiReturnedPosts(Ok(posts)) -> #(
+          Model(..model, posts: list.append(model.posts, posts)),
+          effect.none(),
+        )
+        ApiReturnedPosts(Error(_err)) -> #(model, effect.none())
+        ApiLikedPost(Ok(posts)) -> #(Model(..model, posts:), effect.none())
+        ApiLikedPost(Error(_err)) -> #(model, effect.none())
+      }
+    None -> #(model, effect.none())
   }
 }
 
@@ -105,25 +94,29 @@ fn view(model: Model) -> Element(Msg) {
 
   ui.centre(
     [],
-    ui.stack([stack.loose()], [
-      ui.button(
-        [event.on_click(UserRegistered("pedro", "pedro@gmail.com", "123456"))],
-        [element.text("Register")],
-      ),
-      ui.button([event.on_click(UserLoggedIn("pedro", "123456"))], [
-        element.text("Login"),
-      ]),
-      ..list.map(model.posts, fn(post) {
+    ui.stack(
+      [stack.loose()],
+      list.map(model.posts, fn(post) {
         ui.stack([stack.packed()], [
           html.img([attribute.src("https://cataas.com/cat/" <> post.image_id)]),
           ui.cluster([], [
             element.text(post.author),
-            ui.button([event.on_click(UserLikedPost(post.id))], [
-              element.text(int.to_string(post.likes)),
+            html.button([event.on_click(UserLikedPost(post.id))], [
+              case post.liked {
+                True ->
+                  phosphor.thumbs_up_fill([
+                    attribute.style([#("width", "32px"), #("height", "32px")]),
+                  ])
+                False ->
+                  phosphor.thumbs_up_regular([
+                    attribute.style([#("width", "32px"), #("height", "32px")]),
+                  ])
+              },
             ]),
+            element.text(int.to_string(post.likes)),
           ]),
         ])
-      })
-    ]),
+      }),
+    ),
   )
 }

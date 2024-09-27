@@ -23,8 +23,9 @@ pub fn handle_request(req: Request, ctx: web.Context) {
 fn get(_, _) {
   html([], [
     html.body([], [
-      html.h1([], [element.text("Login")]),
-      html.form([attribute.action("/login"), attribute.method("post")], [
+      html.h1([], [element.text("Register")]),
+      html.form([attribute.action("/register"), attribute.method("post")], [
+        html.input([attribute.name("username"), attribute.type_("username")]),
         html.input([attribute.name("email"), attribute.type_("email")]),
         html.input([attribute.name("password"), attribute.type_("password")]),
         html.button([attribute.type_("submit")], [element.text("Login")]),

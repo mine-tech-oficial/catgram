@@ -25,7 +25,7 @@ fn get(_, _) {
     html.body([], [
       html.h1([], [element.text("Login")]),
       html.form([attribute.action("/login"), attribute.method("post")], [
-        html.input([attribute.name("email"), attribute.type_("email")]),
+        html.input([attribute.name("username"), attribute.type_("username")]),
         html.input([attribute.name("password"), attribute.type_("password")]),
         html.button([attribute.type_("submit")], [element.text("Login")]),
       ]),
@@ -55,7 +55,6 @@ fn post(req: Request, ctx: web.Context) {
         }
         Error(_) -> wisp.internal_server_error()
       }
-      wisp.redirect("/")
     }
     Error(_) -> {
       wisp.bad_request()

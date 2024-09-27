@@ -1,6 +1,59 @@
 import decode
 import gleam/pgo
 
+/// Runs the `like` query
+/// defined in `./src/catgram/sql/like.sql`.
+///
+/// > 🐿️ This function was generated automatically using v1.7.1 of
+/// > the [squirrel package](https://github.com/giacomocavalieri/squirrel).
+///
+pub fn like(db, arg_1, arg_2) {
+  let decoder = decode.map(decode.dynamic, fn(_) { Nil })
+
+  "insert into
+  \"like\"
+values
+  ($1, $2)"
+  |> pgo.execute(db, [pgo.int(arg_1), pgo.int(arg_2)], decode.from(decoder, _))
+}
+
+/// A row you get from running the `get_like` query
+/// defined in `./src/catgram/sql/get_like.sql`.
+///
+/// > 🐿️ This type definition was generated automatically using v1.7.1 of the
+/// > [squirrel package](https://github.com/giacomocavalieri/squirrel).
+///
+pub type GetLikeRow {
+  GetLikeRow(user_id: Int, post_id: Int)
+}
+
+/// Runs the `get_like` query
+/// defined in `./src/catgram/sql/get_like.sql`.
+///
+/// > 🐿️ This function was generated automatically using v1.7.1 of
+/// > the [squirrel package](https://github.com/giacomocavalieri/squirrel).
+///
+pub fn get_like(db, arg_1, arg_2) {
+  let decoder =
+    decode.into({
+      use user_id <- decode.parameter
+      use post_id <- decode.parameter
+      GetLikeRow(user_id: user_id, post_id: post_id)
+    })
+    |> decode.field(0, decode.int)
+    |> decode.field(1, decode.int)
+
+  "select
+  user_id,
+  post_id
+from
+  \"like\"
+where
+  user_id = $1
+  and post_id = $2"
+  |> pgo.execute(db, [pgo.int(arg_1), pgo.int(arg_2)], decode.from(decoder, _))
+}
+
 /// A row you get from running the `get_session_by_id` query
 /// defined in `./src/catgram/sql/get_session_by_id.sql`.
 ///
@@ -53,6 +106,53 @@ where
   |> pgo.execute(db, [pgo.int(arg_1)], decode.from(decoder, _))
 }
 
+/// A row you get from running the `get_user_by_id` query
+/// defined in `./src/catgram/sql/get_user_by_id.sql`.
+///
+/// > 🐿️ This type definition was generated automatically using v1.7.1 of the
+/// > [squirrel package](https://github.com/giacomocavalieri/squirrel).
+///
+pub type GetUserByIdRow {
+  GetUserByIdRow(id: Int, username: String, email: String, password: String)
+}
+
+/// Runs the `get_user_by_id` query
+/// defined in `./src/catgram/sql/get_user_by_id.sql`.
+///
+/// > 🐿️ This function was generated automatically using v1.7.1 of
+/// > the [squirrel package](https://github.com/giacomocavalieri/squirrel).
+///
+pub fn get_user_by_id(db, arg_1) {
+  let decoder =
+    decode.into({
+      use id <- decode.parameter
+      use username <- decode.parameter
+      use email <- decode.parameter
+      use password <- decode.parameter
+      GetUserByIdRow(
+        id: id,
+        username: username,
+        email: email,
+        password: password,
+      )
+    })
+    |> decode.field(0, decode.int)
+    |> decode.field(1, decode.string)
+    |> decode.field(2, decode.string)
+    |> decode.field(3, decode.string)
+
+  "select
+  id,
+  username,
+  email,
+  password
+from
+  \"user\"
+where
+  id = $1"
+  |> pgo.execute(db, [pgo.int(arg_1)], decode.from(decoder, _))
+}
+
 /// A row you get from running the `get_users` query
 /// defined in `./src/catgram/sql/get_users.sql`.
 ///
@@ -93,6 +193,23 @@ from
   |> pgo.execute(db, [], decode.from(decoder, _))
 }
 
+/// Runs the `dislike` query
+/// defined in `./src/catgram/sql/dislike.sql`.
+///
+/// > 🐿️ This function was generated automatically using v1.7.1 of
+/// > the [squirrel package](https://github.com/giacomocavalieri/squirrel).
+///
+pub fn dislike(db, arg_1, arg_2) {
+  let decoder = decode.map(decode.dynamic, fn(_) { Nil })
+
+  "delete from
+  \"like\"
+where
+  user_id = $1
+  and post_id = $2"
+  |> pgo.execute(db, [pgo.int(arg_1), pgo.int(arg_2)], decode.from(decoder, _))
+}
+
 /// A row you get from running the `get_posts` query
 /// defined in `./src/catgram/sql/get_posts.sql`.
 ///
@@ -100,7 +217,8 @@ from
 /// > [squirrel package](https://github.com/giacomocavalieri/squirrel).
 ///
 pub type GetPostsRow {
-  GetPostsRow(id: Int, image_id: String, author: String, likes: Int)
+  GetPostsRow(id: Int, image_id: String, author: String, likes: Int, liked: Bool,
+  )
 }
 
 /// Runs the `get_posts` query
@@ -109,31 +227,58 @@ pub type GetPostsRow {
 /// > 🐿️ This function was generated automatically using v1.7.1 of
 /// > the [squirrel package](https://github.com/giacomocavalieri/squirrel).
 ///
-pub fn get_posts(db) {
+pub fn get_posts(db, arg_1) {
   let decoder =
     decode.into({
       use id <- decode.parameter
       use image_id <- decode.parameter
       use author <- decode.parameter
       use likes <- decode.parameter
-      GetPostsRow(id: id, image_id: image_id, author: author, likes: likes)
+      use liked <- decode.parameter
+      GetPostsRow(
+        id: id,
+        image_id: image_id,
+        author: author,
+        likes: likes,
+        liked: liked,
+      )
     })
     |> decode.field(0, decode.int)
     |> decode.field(1, decode.string)
     |> decode.field(2, decode.string)
     |> decode.field(3, decode.int)
+    |> decode.field(4, decode.bool)
 
   "select
   id,
   image_id,
   author,
-  likes
+  likes,
+  exists(select 1 from \"like\" where post_id = id and user_id = $1) as liked
 from
   post
 order by
   likes
 desc"
-  |> pgo.execute(db, [], decode.from(decoder, _))
+  |> pgo.execute(db, [pgo.int(arg_1)], decode.from(decoder, _))
+}
+
+/// Runs the `dislike_post` query
+/// defined in `./src/catgram/sql/dislike_post.sql`.
+///
+/// > 🐿️ This function was generated automatically using v1.7.1 of
+/// > the [squirrel package](https://github.com/giacomocavalieri/squirrel).
+///
+pub fn dislike_post(db, arg_1) {
+  let decoder = decode.map(decode.dynamic, fn(_) { Nil })
+
+  "update
+  post
+set
+  likes = likes - 1
+where
+  id = $1"
+  |> pgo.execute(db, [pgo.int(arg_1)], decode.from(decoder, _))
 }
 
 /// A row you get from running the `get_user_by_username` query
