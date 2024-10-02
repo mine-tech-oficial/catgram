@@ -4,6 +4,8 @@ import lustre/attribute.{attribute}
 import lustre/element
 import lustre/element/html.{html}
 import lustre/server_component
+import lustre/ui
+import lustre/ui/layout/group
 import wisp.{type Request}
 
 pub fn handle_request(req: Request, _ctx: web.Context) {
@@ -13,9 +15,7 @@ pub fn handle_request(req: Request, _ctx: web.Context) {
     html.head([], [
       html.link([
         attribute.rel("stylesheet"),
-        attribute.href(
-          "https://cdn.jsdelivr.net/gh/lustre-labs/ui/priv/styles.css",
-        ),
+        attribute.href("/css/pico.min.css"),
       ]),
       html.script(
         [
@@ -26,8 +26,13 @@ pub fn handle_request(req: Request, _ctx: web.Context) {
       ),
     ]),
     html.body([], [
-      html.a([attribute("href", "/register")], [element.text("Register")]),
-      html.a([attribute("href", "/login")], [element.text("Login")]),
+      // group.of(fn(attributes, elements) { html.div(attributes, elements) }, [], [
+      //   html.a([attribute("href", "/register")], [element.text("Register")]),
+      //   html.a([attribute("href", "/login")], [element.text("Login")]),
+      // ]),
+      html.header([attribute.class("container")], [
+        html.h1([], [element.text("Catgram")]),
+      ]),
       server_component.component([server_component.route("/feed")]),
     ]),
   ])

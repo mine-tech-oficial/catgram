@@ -1,9 +1,12 @@
 import catgram/auth
 import catgram/web
 import formal/form
+import gleam/dict
 import gleam/http
 import gleam/int
-import lustre/attribute
+import gleam/list
+import gleam/result
+import lustre/attribute.{attribute}
 import lustre/element
 import lustre/element/html.{html}
 import wisp.{type Request}
@@ -22,12 +25,33 @@ pub fn handle_request(req: Request, ctx: web.Context) {
 
 fn get(_, _) {
   html([], [
-    html.body([], [
-      html.h1([], [element.text("Login")]),
-      html.form([attribute.action("/login"), attribute.method("post")], [
-        html.input([attribute.name("username"), attribute.type_("username")]),
-        html.input([attribute.name("password"), attribute.type_("password")]),
-        html.button([attribute.type_("submit")], [element.text("Login")]),
+    html.head([], [
+      html.link([
+        attribute.rel("stylesheet"),
+        attribute.href("/css/pico.min.css"),
+      ]),
+    ]),
+    html.body([attribute.class("container")], [
+      html.header([], [html.h1([], [element.text("Login")])]),
+      html.main([], [
+        html.form([attribute.action("/login"), attribute.method("post")], [
+          html.fieldset([], [
+            html.label([attribute.for("username")], [element.text("Username")]),
+            html.input([
+              attribute.name("username"),
+              attribute.placeholder("Username"),
+              attribute.type_("username"),
+            ]),
+            //
+            html.label([attribute.for("password")], [element.text("Password")]),
+            html.input([
+              attribute.name("password"),
+              attribute.placeholder("Password"),
+              attribute.type_("password"),
+            ]),
+          ]),
+          html.button([attribute.type_("submit")], [element.text("Login")]),
+        ]),
       ]),
     ]),
   ])
@@ -56,9 +80,37 @@ fn post(req: Request, ctx: web.Context) {
         Error(_) -> wisp.internal_server_error()
       }
     }
-    Error(_) -> {
-      wisp.bad_request()
-    }
+    Error(err) ->
+      html([], [
+        html.head([], [
+          html.link([
+            attribute.rel("stylesheet"),
+            attribute.href("/css/pico.min.css"),
+          ]),
+        ]),
+        html.body([attribute.class("container")], [
+          html.header([], [html.h1([], [element.text("Login")])]),
+          html.main([], [
+            html.form([attribute.action("/login"), attribute.method("post")], [
+              html.fieldset([], [
+                html.label([attribute.for("username")], [
+                  element.text("Username"),
+                ]),
+                form_state_input("username", "Username", "text", err),
+                //
+                html.label([attribute.for("password")], [
+                  element.text("Password"),
+                ]),
+                form_state_input("password", "Password", "password", err),
+              ]),
+              //
+              html.button([attribute.type_("submit")], [element.text("Login")]),
+            ]),
+          ]),
+        ]),
+      ])
+      |> element.to_document_string_builder
+      |> wisp.html_response(200)
   }
 }
 
@@ -81,4 +133,43 @@ fn handle_form_submission(values: List(#(String, String))) {
       |> form.and(form.must_be_string_longer_than(7)),
   )
   |> form.finish
+}
+
+fn form_state_input(
+  name: String,
+  placeholder: String,
+  type_: String,
+  form_state: form.Form,
+) {
+  case dict.get(form_state.errors, name) {
+    Ok(err) ->
+      element.fragment([
+        html.input([
+          attribute.name(name),
+          attribute.placeholder(placeholder),
+          attribute.type_(type_),
+          attribute("aria-invalid", "true"),
+          attribute("aria-describedby", "invalid-" <> name <> "-helper"),
+        ]),
+        html.small([attribute.id("invalid-" <> name <> "-helper")], [
+          element.text(err),
+        ]),
+      ])
+    Error(_) ->
+      html.input(case
+        result.try(dict.get(form_state.values, name), list.first)
+      {
+        Ok(value) -> [
+          attribute.name(name),
+          attribute.placeholder(placeholder),
+          attribute.type_(type_),
+          attribute.value(value),
+        ]
+        Error(_) -> [
+          attribute.name(name),
+          attribute.placeholder(placeholder),
+          attribute.type_(type_),
+        ]
+      })
+  }
 }

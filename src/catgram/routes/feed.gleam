@@ -8,12 +8,11 @@ import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/pgo
 import lustre
-import lustre/attribute
+import lustre/attribute.{attribute}
 import lustre/effect
 import lustre/element.{type Element}
 import lustre/element/html
 import lustre/event
-import lustre/ui
 import lustre/ui/layout/stack
 import phosphor
 
@@ -44,11 +43,13 @@ fn init(
     pubsub.PubSub(lustre.Action(Msg, lustre.ServerComponent), pubsub.Channel),
   ),
 ) -> #(Model, effect.Effect(Msg)) {
-  let assert Some(user) = params.1
-  #(
-    Model(params.0, params.2, [], params.1),
-    database.get_posts(params.0, user.id, ApiReturnedPosts),
-  )
+  case params.1 {
+    Some(user) -> #(
+      Model(params.0, params.2, [], params.1),
+      database.get_posts(params.0, user.id, ApiReturnedPosts),
+    )
+    None -> #(Model(params.0, params.2, [], params.1), effect.none())
+  }
 }
 
 // UPDATE ----------------------------------------------------------------------
@@ -60,8 +61,6 @@ pub opaque type Msg {
 }
 
 fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
-  io.debug(msg)
-  io.debug(model.user)
   case model.user {
     Some(user) ->
       case msg {
@@ -91,15 +90,12 @@ fn update(model: Model, msg: Msg) -> #(Model, effect.Effect(Msg)) {
 
 fn view(model: Model) -> Element(Msg) {
   // let styles = [#("width", "100vw"), #("height", "100vh"), #("padding", "1rem")]
-
-  ui.centre(
-    [],
-    ui.stack(
-      [stack.loose()],
+  html.main([attribute.class("container")], case model.user {
+    Some(_) ->
       list.map(model.posts, fn(post) {
-        ui.stack([stack.packed()], [
+        html.article([], [
           html.img([attribute.src("https://cataas.com/cat/" <> post.image_id)]),
-          ui.cluster([], [
+          html.footer([], [
             element.text(post.author),
             html.button([event.on_click(UserLikedPost(post.id))], [
               case post.liked {
@@ -116,7 +112,13 @@ fn view(model: Model) -> Element(Msg) {
             element.text(int.to_string(post.likes)),
           ]),
         ])
-      }),
-    ),
-  )
+      })
+
+    None -> [
+      html.h2([], [element.text("Please login")]),
+      html.a([attribute("href", "/register")], [element.text("Register")]),
+      html.br([]),
+      html.a([attribute("href", "/login")], [element.text("Login")]),
+    ]
+  })
 }
