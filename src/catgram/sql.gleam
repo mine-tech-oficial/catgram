@@ -1,5 +1,6 @@
 import decode
 import gleam/pgo
+import youid/uuid.{type Uuid}
 
 /// Runs the `like` query
 /// defined in `./src/catgram/sql/like.sql`.
@@ -62,7 +63,7 @@ where
 ///
 pub type GetSessionByIdRow {
   GetSessionByIdRow(
-    id: Int,
+    id: Uuid,
     created_at: #(#(Int, Int, Int), #(Int, Int, Int)),
     expires_at: #(#(Int, Int, Int), #(Int, Int, Int)),
     user_id: Int,
@@ -89,7 +90,7 @@ pub fn get_session_by_id(db, arg_1) {
         user_id: user_id,
       )
     })
-    |> decode.field(0, decode.int)
+    |> decode.field(0, uuid_decoder())
     |> decode.field(1, timestamp_decoder())
     |> decode.field(2, timestamp_decoder())
     |> decode.field(3, decode.int)
@@ -103,7 +104,7 @@ from
   \"session\"
 where
   id = $1"
-  |> pgo.execute(db, [pgo.int(arg_1)], decode.from(decoder, _))
+  |> pgo.execute(db, [pgo.text(uuid.to_string(arg_1))], decode.from(decoder, _))
 }
 
 /// A row you get from running the `get_user_by_id` query
@@ -340,7 +341,7 @@ where
 /// > [squirrel package](https://github.com/giacomocavalieri/squirrel).
 ///
 pub type InsertSessionRow {
-  InsertSessionRow(id: Int, created_at: #(#(Int, Int, Int), #(Int, Int, Int)))
+  InsertSessionRow(id: Uuid, created_at: #(#(Int, Int, Int), #(Int, Int, Int)))
 }
 
 /// Runs the `insert_session` query
@@ -356,7 +357,7 @@ pub fn insert_session(db, arg_1, arg_2) {
       use created_at <- decode.parameter
       InsertSessionRow(id: id, created_at: created_at)
     })
-    |> decode.field(0, decode.int)
+    |> decode.field(0, uuid_decoder())
     |> decode.field(1, timestamp_decoder())
 
   "insert into
@@ -438,4 +439,15 @@ fn timestamp_decoder() {
     Ok(timestamp) -> decode.into(timestamp)
     Error(_) -> decode.fail("timestamp")
   }
+}
+
+/// A decoder to decode `Uuid`s coming from a Postgres query.
+///
+fn uuid_decoder() {
+  decode.then(decode.bit_array, fn(uuid) {
+    case uuid.from_bit_array(uuid) {
+      Ok(uuid) -> decode.into(uuid)
+      Error(_) -> decode.fail("uuid")
+    }
+  })
 }

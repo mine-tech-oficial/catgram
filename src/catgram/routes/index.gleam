@@ -4,8 +4,6 @@ import lustre/attribute.{attribute}
 import lustre/element
 import lustre/element/html.{html}
 import lustre/server_component
-import lustre/ui
-import lustre/ui/layout/group
 import wisp.{type Request}
 
 pub fn handle_request(req: Request, _ctx: web.Context) {

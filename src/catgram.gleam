@@ -5,23 +5,23 @@ import catgram/router
 import catgram/routes/feed
 import catgram/sql
 import catgram/web
-import chip
-import gleam/bit_array
-import gleam/bytes_builder
+import envoy
+import gleam/bool
+import gleam/bytes_tree
 import gleam/crypto
-import gleam/erlang/os
+import gleam/dict
 import gleam/erlang/process.{type Selector, type Subject}
 import gleam/http/request.{type Request}
 import gleam/http/response.{type Response, Response}
-import gleam/int
 import gleam/io
 import gleam/json
 import gleam/list
 import gleam/option.{type Option, None, Some}
-import gleam/order
+import gleam/order.{Eq, Gt, Lt}
 import gleam/otp/actor
 import gleam/pgo
 import gleam/result
+import gleam/string
 import lustre
 import lustre/server_component
 import mist.{
@@ -29,10 +29,11 @@ import mist.{
   type WebsocketMessage,
 }
 import wisp/wisp_mist
+import youid/uuid
 
 pub fn main() {
-  let assert Ok(secret_key_base) = os.get_env("SECRET_KEY_BASE")
-  let assert Ok(url) = os.get_env("DATABASE_URL")
+  let assert Ok(secret_key_base) = envoy.get("SECRET_KEY_BASE")
+  let assert Ok(url) = envoy.get("DATABASE_URL")
   let assert Ok(config) = pgo.url_config(url)
   let db = pgo.connect(config)
 
@@ -43,40 +44,7 @@ pub fn main() {
   let server =
     fn(req: Request(Connection)) -> Response(ResponseData) {
       let user =
-        request.get_cookies(req)
-        |> list.key_find("id")
-        |> result.try(crypto.verify_signed_message(_, <<secret_key_base:utf8>>))
-        |> result.try(bit_array.to_string)
-        |> result.try(fn(id) { int.parse(id) })
-        |> result.try(fn(id) {
-          sql.get_session_by_id(db, id)
-          |> result.map_error(fn(_) { Nil })
-        })
-        |> result.try(fn(returned) { list.first(returned.rows) })
-        |> result.try(fn(session_row) {
-          case
-            birl.compare(
-              birl.from_erlang_universal_datetime(session_row.expires_at),
-              birl.utc_now(),
-            )
-          {
-            order.Gt -> Ok(session_row.user_id)
-            _ -> Error(Nil)
-          }
-        })
-        |> result.try(fn(id) {
-          sql.get_user_by_id(db, id)
-          |> result.map_error(fn(_) { Nil })
-        })
-        |> result.try(fn(returned) { list.first(returned.rows) })
-        |> result.map(fn(user_row) {
-          auth.User(
-            user_row.id,
-            user_row.username,
-            user_row.email,
-            user_row.password,
-          )
-        })
+        auth_user(db, req, secret_key_base)
         |> option.from_result
 
       let ctx = web.Context(..ctx, user:)
@@ -110,6 +78,82 @@ pub fn main() {
       io.debug(err)
       Nil
     }
+  }
+}
+
+pub type SessionAuthError {
+  InvalidCookieSessionId
+  ExpiredSession
+  NoExistingSession(session_id: uuid.Uuid)
+  NoUserForSession(session: auth.Session)
+  CannotFetchSession(reason: pgo.QueryError)
+  CannotFetchUser(reason: pgo.QueryError)
+}
+
+pub fn auth_user(
+  db,
+  request,
+  secret_key_base,
+) -> Result(auth.User, SessionAuthError) {
+  use session_id <- result.try(get_cookie_session_id(request, secret_key_base))
+  use session <- result.try(fetch_session(db, session_id))
+
+  case session_status(session) {
+    Expired -> Error(ExpiredSession)
+    NotExpired -> {
+      use auth.User(id:, username:, email:, password:) <- result.map(
+        fetch_session_user(db, session),
+      )
+      auth.User(id:, username:, email:, password:)
+    }
+  }
+}
+
+fn get_cookie_session_id(
+  req,
+  secret_key_base,
+) -> Result(uuid.Uuid, SessionAuthError) {
+  request.get_cookies(req)
+  |> list.key_find("id")
+  |> result.then(crypto.verify_signed_message(_, <<secret_key_base:utf8>>))
+  |> result.then(fn(id) { uuid.from_bit_array(id) })
+  |> result.replace_error(InvalidCookieSessionId)
+}
+
+fn fetch_session(db, session_id) -> Result(auth.Session, SessionAuthError) {
+  case sql.get_session_by_id(db, session_id) {
+    Error(reason) -> Error(CannotFetchSession(reason:))
+    Ok(pgo.Returned(_, [])) -> Error(NoExistingSession(session_id:))
+    Ok(pgo.Returned(
+      _,
+      [sql.GetSessionByIdRow(id:, created_at:, expires_at:, user_id:), ..],
+    )) -> Ok(auth.Session(id:, created_at:, expires_at:, user_id:))
+  }
+}
+
+fn fetch_session_user(db, session: auth.Session) {
+  case sql.get_user_by_id(db, session.user_id) {
+    Error(reason) -> Error(CannotFetchUser(reason:))
+    Ok(pgo.Returned(_, [])) -> Error(NoUserForSession(session:))
+    Ok(pgo.Returned(
+      _,
+      [sql.GetUserByIdRow(id:, username:, email:, password:), ..],
+    )) -> Ok(auth.User(id:, username:, email:, password:))
+  }
+}
+
+type SessionStatus {
+  Expired
+  NotExpired
+}
+
+fn session_status(session_row: auth.Session) -> SessionStatus {
+  let session_expiration =
+    birl.from_erlang_universal_datetime(session_row.expires_at)
+
+  case birl.compare(session_expiration, birl.now()) {
+    Lt | Eq -> Expired
+    Gt -> NotExpired
   }
 }
 

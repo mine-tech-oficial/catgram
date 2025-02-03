@@ -1,15 +1,20 @@
 import catgram/auth
 import catgram/web
 import formal/form
+import gleam/crypto
 import gleam/dict
 import gleam/http
+import gleam/http/cookie
+import gleam/http/response
 import gleam/int
 import gleam/list
+import gleam/option
 import gleam/result
 import lustre/attribute.{attribute}
 import lustre/element
 import lustre/element/html.{html}
 import wisp.{type Request}
+import youid/uuid
 
 pub type Login {
   Login(username: String, password: String)
@@ -68,13 +73,15 @@ fn post(req: Request, ctx: web.Context) {
     Ok(form) -> {
       case auth.login_user(ctx.db, form.username, form.password) {
         Ok(#(_, session)) -> {
+          let max_age = 60 * 60 * 24
+
           wisp.redirect("/")
           |> wisp.set_cookie(
             req,
             "id",
-            int.to_string(session.id),
+            uuid.to_string(session.id),
             wisp.Signed,
-            60 * 60 * 24,
+            max_age,
           )
         }
         Error(_) -> wisp.internal_server_error()

@@ -12,9 +12,8 @@ import lustre/attribute.{attribute}
 import lustre/effect
 import lustre/element.{type Element}
 import lustre/element/html
+import lustre/element/svg
 import lustre/event
-import lustre/ui/layout/stack
-import phosphor
 
 // MAIN ------------------------------------------------------------------------
 
@@ -100,11 +99,11 @@ fn view(model: Model) -> Element(Msg) {
             html.button([event.on_click(UserLikedPost(post.id))], [
               case post.liked {
                 True ->
-                  phosphor.thumbs_up_fill([
+                  thumbs_up_fill([
                     attribute.style([#("width", "32px"), #("height", "32px")]),
                   ])
                 False ->
-                  phosphor.thumbs_up_regular([
+                  thumbs_up_regular([
                     attribute.style([#("width", "32px"), #("height", "32px")]),
                   ])
               },
@@ -121,4 +120,52 @@ fn view(model: Model) -> Element(Msg) {
       html.a([attribute("href", "/login")], [element.text("Login")]),
     ]
   })
+}
+
+fn thumbs_up_fill(attrs: List(attribute.Attribute(msg))) -> Element(msg) {
+  let base_attributes = [
+    attribute.attribute("xmlns", "http://www.w3.org/2000/svg"),
+    attribute.attribute("fill", "currentColor"),
+    attribute.attribute("stroke", "currentColor"),
+    attribute.attribute("stroke-linecap", "round"),
+    attribute.attribute("viewBox", "0 0 256 256"),
+    attribute.attribute("width", "1em"),
+    attribute.attribute("height", "1em"),
+    ..attrs
+  ]
+
+  let combined_attributes = list.flatten([base_attributes, attrs])
+
+  svg.svg(combined_attributes, [
+    svg.path([
+      attribute.attribute(
+        "d",
+        "M234,80.12A24,24,0,0,0,216,72H160V56a40,40,0,0,0-40-40,8,8,0,0,0-7.16,4.42L75.06,96H32a16,16,0,0,0-16,16v88a16,16,0,0,0,16,16H204a24,24,0,0,0,23.82-21l12-96A24,24,0,0,0,234,80.12ZM32,112H72v88H32Z",
+      ),
+    ]),
+  ])
+}
+
+fn thumbs_up_regular(attrs: List(attribute.Attribute(msg))) -> Element(msg) {
+  let base_attributes = [
+    attribute.attribute("xmlns", "http://www.w3.org/2000/svg"),
+    attribute.attribute("fill", "currentColor"),
+    attribute.attribute("stroke", "currentColor"),
+    attribute.attribute("stroke-linecap", "round"),
+    attribute.attribute("viewBox", "0 0 256 256"),
+    attribute.attribute("width", "1em"),
+    attribute.attribute("height", "1em"),
+    ..attrs
+  ]
+
+  let combined_attributes = list.flatten([base_attributes, attrs])
+
+  svg.svg(combined_attributes, [
+    svg.path([
+      attribute.attribute(
+        "d",
+        "M234,80.12A24,24,0,0,0,216,72H160V56a40,40,0,0,0-40-40,8,8,0,0,0-7.16,4.42L75.06,96H32a16,16,0,0,0-16,16v88a16,16,0,0,0,16,16H204a24,24,0,0,0,23.82-21l12-96A24,24,0,0,0,234,80.12ZM32,112H72v88H32ZM223.94,97l-12,96a8,8,0,0,1-7.94,7H88V105.89l36.71-73.43A24,24,0,0,1,144,56V80a8,8,0,0,0,8,8h64a8,8,0,0,1,7.94,9Z",
+      ),
+    ]),
+  ])
 }

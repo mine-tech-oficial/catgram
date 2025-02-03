@@ -6,6 +6,7 @@ import gleam/list
 import gleam/pgo
 import gleam/result
 import lustre/effect
+import youid/uuid
 
 pub type User {
   User(id: Int, username: String, email: String, password: String)
@@ -13,7 +14,7 @@ pub type User {
 
 pub type Session {
   Session(
-    id: Int,
+    id: uuid.Uuid,
     created_at: #(#(Int, Int, Int), #(Int, Int, Int)),
     expires_at: #(#(Int, Int, Int), #(Int, Int, Int)),
     user_id: Int,
